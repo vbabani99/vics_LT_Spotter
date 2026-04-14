@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+  <title>Vics_LT_Spotter_v0.0.1.1</title>
+  <style>
+    :root{
+      --bg:#050507;
+      --bg2:#0b0d12;
+      --panel:rgba(16,18,24,.78);
+      --panel2:rgba(22,25,34,.92);
+      --text:#f5f7fb;
+      --muted:#9aa4b2;
+      --line:rgba(255,255,255,.10);
+      --accent:#8b5cf6;
+      --accent2:#ec4899;
+      --good:#22c55e;
+      --bad:#ef4444;
+      --mid:#facc15;
+      --best:#a855f7;
+      --radius:22px;
+      --shadow:0 14px 36px rgba(0,0,0,.38);
+      --glow:0 0 24px rgba(255,255,255,.05);
+      --chip:#0f1117;
+    }
+    body.theme-oled{
+      --bg:#030303; --bg2:#090909; --panel:rgba(14,14,16,.78); --panel2:rgba(20,20,22,.92);
+      --text:#f6f7fb; --muted:#a0a6b1; --line:rgba(255,255,255,.09);
+      --accent:#8b5cf6; --accent2:#ec4899; --chip:#0b0b0c;
+    }
+    body.theme-carbon-red{
+      --bg:#090607; --bg2:#130a0b; --panel:rgba(24,12,13,.80); --panel2:rgba(34,16,18,.93);
+      --text:#fff3f3; --muted:#d7aaaa; --line:rgba(255,210,210,.11);
+      --accent:#ef4444; --accent2:#fb923c; --chip:#180d0e;
+    }
+    body.theme-ice-blue{
+      --bg:#061018; --bg2:#0b1823; --panel:rgba(10,23,34,.80); --panel2:rgba(17,33,46,.93);
+      --text:#edf7ff; --muted:#a6c3d8; --line:rgba(220,245,255,.11);
+      --accent:#38bdf8; --accent2:#60a5fa; --chip:#0a141c;
+    }
+    body.theme-neon-lime{
+      --bg:#091107; --bg2:#11190d; --panel:rgba(16,23,13,.80); --panel2:rgba(23,32,19,.93);
+      --text:#f7ffe9; --muted:#b8c59d; --line:rgba(240,255,214,.10);
+      --accent:#84cc16; --accent2:#bef264; --chip:#10150d;
+    }
+    body.theme-sunset-orange{
+      --bg:#130a07; --bg2:#1c110c; --panel:rgba(28,17,12,.80); --panel2:rgba(37,22,16,.93);
+      --text:#fff4ec; --muted:#ddb29d; --line:rgba(255,231,217,.10);
+      --accent:#f97316; --accent2:#fb923c; --chip:#170f0b;
+    }
+    body.theme-purple-night{
+      --bg:#0d0816; --bg2:#170f24; --panel:rgba(20,13,31,.80); --panel2:rgba(28,19,42,.93);
+      --text:#f7f1ff; --muted:#c1abdb; --line:rgba(245,235,255,.10);
+      --accent:#a855f7; --accent2:#ec4899; --chip:#150f1e;
+    }
+
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-text-size-adjust:100%}
+    body{
+      color:var(--text);
+      background:
+        radial-gradient(circle at 50% -10%, color-mix(in srgb, var(--accent) 30%, transparent), transparent 35%),
+        radial-gradient(circle at 90% 100%, color-mix(in srgb, var(--accent2) 20%, transparent), transparent 30%),
+        linear-gradient(180deg,var(--bg2),var(--bg));
+      transition:background .25s ease,color .25s ease;
+    }
+    body::before{
+      content:"";
+      position:fixed; inset:0; pointer-events:none;
+      background:
+        linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px);
+      background-size: 22px 22px;
+      mask-image: radial-gradient(circle at center, black 35%, transparent 80%);
+      opacity:.25;
+    }
+    .app{
+      width:min(100%, 520px);
+      min-height:100vh;
+      margin:0 auto;
+      padding:calc(12px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) calc(14px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left));
+      display:flex; flex-direction:column; gap:10px;
+    }
+    .shell,.main{
+      background:linear-gradient(180deg,var(--panel2),var(--panel));
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+    .shell{padding:12px}
+    .topBrand{
+      display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+      margin-bottom:10px;
+    }
+    .brandLogo{
+      width:108px; height:58px; object-fit:contain; display:block;
+      filter: drop-shadow(0 8px 18px rgba(0,0,0,.30));
+      border-radius:10px;
+    }
+    .brandTag{
+      text-align:center; font-weight:900; line-height:1.05;
+      font-size:14px;
+    }
+    .brandTag small{
+      display:block; color:var(--muted); font-size:11px; letter-spacing:.12em; text-transform:uppercase; margin-top:3px;
+    }
+    .controlBar{
+      display:grid;
+      grid-template-columns: auto 1fr auto auto;
+      gap:8px;
+      align-items:center;
+    }
+    .pill,.iconBtn,.voiceBtn,.pilotSelect{
+      min-height:38px;
+      border-radius:14px;
+      border:1px solid var(--line);
+      background:var(--chip);
+      color:var(--text);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+    }
+    .pill{
+      min-width:66px; padding:0 10px; display:flex; align-items:center; justify-content:center;
+      font-size:11px; font-weight:900; letter-spacing:.10em; text-transform:uppercase;
+    }
+    .pill.on{background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; border-color:transparent}
+    .pill.off{background:var(--chip); color:var(--muted)}
+    .pilotSelect{
+      width:100%;
+      appearance:none; -webkit-appearance:none;
+      padding:0 34px 0 12px; font-size:14px; font-weight:800; outline:none;
+      background-image:
+        linear-gradient(45deg,transparent 50%, #cbd5e1 50%),
+        linear-gradient(135deg,#cbd5e1 50%, transparent 50%);
+      background-position:calc(100% - 18px) 50%,calc(100% - 12px) 50%;
+      background-size:5px 5px,5px 5px; background-repeat:no-repeat;
+    }
+    .voiceBtn{
+      padding:0 12px; font-size:11px; font-weight:900; letter-spacing:.08em; text-transform:uppercase; cursor:pointer;
+      min-width:80px;
+    }
+    .voiceBtn.on{background:linear-gradient(135deg,var(--accent),var(--accent2)); border-color:transparent; color:#fff}
+    .iconBtn{
+      width:38px; min-width:38px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+      font-size:16px; font-weight:900;
+    }
+    .themeHint{
+      margin-top:8px;
+      text-align:center;
+      color:var(--muted);
+      font-size:10px; letter-spacing:.12em; text-transform:uppercase;
+    }
+
+    .main{
+      flex:1;
+      display:flex; flex-direction:column;
+      justify-content:flex-start;
+      padding:18px 16px 16px;
+      position:relative;
+      overflow:hidden;
+    }
+    .main::before{
+      content:"";
+      position:absolute; inset:auto -20% 50% -20%; height:140px;
+      background:radial-gradient(circle, color-mix(in srgb, var(--accent) 18%, transparent), transparent 65%);
+      pointer-events:none;
+      filter: blur(20px);
+    }
+    .raceName{
+      position:relative;
+      text-align:center;
+      font-size:clamp(18px,4.7vw,28px);
+      line-height:1.08;
+      font-weight:900;
+      letter-spacing:.01em;
+      margin:2px 0 10px;
+    }
+    .pilotName{
+      position:relative;
+      text-align:center;
+      font-size:clamp(12px,3vw,16px);
+      color:var(--muted);
+      font-weight:800;
+      text-transform:uppercase;
+      letter-spacing:.12em;
+      min-height:1.25em;
+      margin-bottom:6px;
+    }
+    .lapLabel{
+      position:relative;
+      text-align:center;
+      color:var(--muted);
+      font-size:10px;
+      font-weight:900;
+      letter-spacing:.24em;
+      text-transform:uppercase;
+    }
+    .lastLap{
+      position:relative;
+      text-align:center;
+      font-size:clamp(64px,18vw,116px);
+      line-height:.96;
+      font-weight:1000;
+      letter-spacing:-.05em;
+      font-variant-numeric:tabular-nums;
+      padding:8px 0 2px;
+      text-shadow:var(--glow);
+    }
+    .lastLap.flash{animation:flash .55s ease-out}
+    .lastLap.trend-good{color:var(--good)}
+    .lastLap.trend-bad{color:var(--bad)}
+    .lastLap.trend-mid{color:var(--mid)}
+    .note{
+      position:relative;
+      text-align:center;
+      color:var(--muted);
+      font-size:13px;
+      min-height:1.3em;
+      margin-bottom:10px;
+    }
+    .grid{
+      position:relative;
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+      margin-top:6px;
+    }
+    .metric{
+      background:rgba(255,255,255,.02);
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:10px 12px;
+      min-height:74px;
+      display:flex; flex-direction:column; justify-content:space-between;
+    }
+    .metricLabel{
+      color:var(--muted);
+      font-size:10px;
+      font-weight:900;
+      letter-spacing:.16em;
+      text-transform:uppercase;
+    }
+    .metricValue{
+      font-size:clamp(24px,6vw,34px);
+      line-height:1;
+      font-weight:1000;
+      font-variant-numeric:tabular-nums;
+    }
+    .metricValue.small{font-size:clamp(22px,5.2vw,30px)}
+    .metricValue.best{color:var(--best)}
+    .footer{
+      text-align:center;
+      color:var(--muted);
+      font-size:10px;
+      letter-spacing:.16em;
+      text-transform:uppercase;
+      padding:2px 0 0;
+    }
+
+    @keyframes flash{
+      0%{transform:scale(1); opacity:.88}
+      35%{transform:scale(1.06); opacity:1}
+      100%{transform:scale(1); opacity:1}
+    }
+
+    @media (max-width:420px){
+      .controlBar{grid-template-columns:auto 1fr auto auto; gap:6px}
+      .pill,.voiceBtn,.iconBtn,.pilotSelect{min-height:36px}
+      .voiceBtn{min-width:74px; padding:0 10px; font-size:10px}
+      .grid{gap:7px}
+      .metric{min-height:68px; padding:9px 10px}
+    }
+  </style>
+</head>
+<body class="theme-purple-night">
+  <div class="app">
+    <section class="shell">
+      <div class="topBrand">
+        <img class="brandLogo" src="https://i.ibb.co/bjknVM36/vic-pulse-timing.gif" alt="Vic's Pulse Timing" />
+        <div class="brandTag">🐊 x.vic!<small>v0.0.1.1</small></div>
+      </div>
+
+      <div class="controlBar">
+        <div id="livePill" class="pill off">OFF</div>
+        <select id="pilotSelect" class="pilotSelect">
+          <option value="">Cargando pilotos...</option>
+        </select>
+        <button id="themeBtn" class="iconBtn" type="button" aria-label="Cambiar tema">🎨</button>
+        <button id="voiceBtn" class="voiceBtn" type="button">Voz OFF</button>
+      </div>
+      <div id="themeHint" class="themeHint">Purple Night</div>
+    </section>
+
+    <section class="main">
+      <div id="raceName" class="raceName">Sin carrera</div>
+      <div id="pilotName" class="pilotName">Sin piloto</div>
+      <div class="lapLabel">Última vuelta</div>
+      <div id="lastLap" class="lastLap">--.--</div>
+      <div id="note" class="note">Conectando...</div>
+
+      <div class="grid">
+        <div class="metric">
+          <div class="metricLabel">Vueltas</div>
+          <div id="lapsValue" class="metricValue">-</div>
+        </div>
+        <div class="metric">
+          <div class="metricLabel">Pronóstico</div>
+          <div id="forecastValue" class="metricValue small">-</div>
+        </div>
+        <div class="metric">
+          <div class="metricLabel">Mejor vuelta</div>
+          <div id="bestValue" class="metricValue small best">-</div>
+        </div>
+        <div class="metric">
+          <div class="metricLabel">Tiempo total</div>
+          <div id="totalValue" class="metricValue small">-</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="footer">Vics LT Spotter</div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+  <script>
+    const APP_NAME = 'Vics_LT_Spotter';
+    const APP_VERSION = 'v0.0.1.1';
+    const LS_PILOT = 'spotter_simple_lastlap_pilot_key';
+    const LS_VOICE = 'spotter_simple_lastlap_voice_on';
+    const LS_THEME = 'spotter_simple_lastlap_theme';
+    const THEMES = [
+      { key:'theme-oled', label:'OLED' },
+      { key:'theme-carbon-red', label:'Carbon Red' },
+      { key:'theme-ice-blue', label:'Ice Blue' },
+      { key:'theme-neon-lime', label:'Neon Lime' },
+      { key:'theme-sunset-orange', label:'Sunset Orange' },
+      { key:'theme-purple-night', label:'Purple Night' }
+    ];
+
+    const FIREBASE_CONFIG = {
+      apiKey: 'AIzaSyBaySYvIxH8JsvXCETv3XwVdNecJY1ez2c',
+      authDomain: 'turbo-racing-zround.firebaseapp.com',
+      projectId: 'turbo-racing-zround',
+      appId: '1:628478462576:web:c2dbc45c95bbe362ce42b5'
+    };
+    const FIRESTORE_DOC_PATH = 'races/currentRace';
+
+    const els = {
+      pilotSelect: document.getElementById('pilotSelect'),
+      themeBtn: document.getElementById('themeBtn'),
+      themeHint: document.getElementById('themeHint'),
+      voiceBtn: document.getElementById('voiceBtn'),
+      livePill: document.getElementById('livePill'),
+      raceName: document.getElementById('raceName'),
+      pilotName: document.getElementById('pilotName'),
+      lastLap: document.getElementById('lastLap'),
+      note: document.getElementById('note'),
+      lapsValue: document.getElementById('lapsValue'),
+      forecastValue: document.getElementById('forecastValue'),
+      bestValue: document.getElementById('bestValue'),
+      totalValue: document.getElementById('totalValue')
+    };
+
+    const state = {
+      voiceOn: false,
+      speechUnlocked: false,
+      rows: [],
+      selectedPilotKey: '',
+      lastRenderedLapMs: null,
+      lastSpokenText: '',
+      voices: [],
+      firebaseApp: null,
+      firestore: null,
+      unsubDoc: null,
+      connected: false,
+      wakeLock: null,
+      wakeTick: null,
+      pollTimer: null,
+      lastSnapshotAt: 0,
+      theme: 'theme-purple-night',
+      pilotLapMemory: {}
+    };
+
+    function lsGet(key, fallback=''){ try { const v = localStorage.getItem(key); return v == null ? fallback : v; } catch { return fallback; } }
+    function lsSet(key, value){ try { localStorage.setItem(key, value); } catch {} }
+    function safeName(v){ return String(v || '').replace(/\s+/g, ' ').trim(); }
+    function escapeHtml(s){ return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;'); }
+
+    function parseTimeToMs(v){
+      if (v == null || v === '') return 0;
+      if (typeof v === 'number' && Number.isFinite(v)) {
+        if (v <= 0) return 0;
+        if (v < 1000) return Math.round(v * 1000);
+        return Math.round(v);
+      }
+      const s = String(v).trim();
+      if (!s) return 0;
+      if (/^\d+(\.\d+)?$/.test(s)) {
+        const n = Number(s);
+        if (!Number.isFinite(n) || n <= 0) return 0;
+        if (n < 1000) return Math.round(n * 1000);
+        return Math.round(n);
+      }
+      const m = s.match(/^(?:(\d+):)?(\d{1,2})(?:\.(\d{1,3}))?$/);
+      if (!m) return 0;
+      const min = Number(m[1] || 0);
+      const sec = Number(m[2] || 0);
+      const ms = Number((m[3] || '').padEnd(3, '0') || 0);
+      return (min * 60000) + (sec * 1000) + ms;
+    }
+
+    function formatLapMs(ms){
+      const n = Number(ms) || 0;
+      if (n <= 0) return '--.--';
+      const totalSec = Math.floor(n / 1000);
+      const mins = Math.floor(totalSec / 60);
+      const secs = totalSec % 60;
+      const millis = n % 1000;
+      if (mins > 0) return `${mins}:${String(secs).padStart(2,'0')}.${String(millis).padStart(3,'0')}`;
+      return `${secs}.${String(millis).padStart(3,'0')}`;
+    }
+
+    function lapToSpeech(ms){
+      const n = Number(ms) || 0;
+      if (n <= 0) return '';
+      const totalSec = Math.floor(n / 1000);
+      const mins = Math.floor(totalSec / 60);
+      const secs = totalSec % 60;
+      const cent = Math.floor((n % 1000) / 10);
+      if (mins > 0) return `${mins} minutos ${secs} segundos punto ${cent}`;
+      return `${secs} punto ${cent}`;
+    }
+
+    function extractRows(payload){
+      const raw = payload && typeof payload === 'object' ? payload : {};
+      const parsed = raw.parsed && typeof raw.parsed === 'object' ? raw.parsed : null;
+      const rootRows = Array.isArray(raw.classification) ? raw.classification : [];
+      const parsedRows = parsed && Array.isArray(parsed.classification) ? parsed.classification : [];
+      const rows = parsedRows.length ? parsedRows : rootRows;
+      return rows.map((row, index) => {
+        const driverNumber = safeName(row.driverNumber || row.racerNumber || row.number || '');
+        const driverName = safeName(row.driverName || row.racerName || row.name || row.pilotName || '');
+        const lastLapMs = parseTimeToMs(row.lastLapMs ?? row.lastTimeMs ?? row.lastLapTimeMs ?? row.lastTime ?? row.lastLapTime ?? row.lastLap ?? 0);
+        const bestLapMs = parseTimeToMs(row.bestMs ?? row.bestLapMs ?? row.bestTime ?? row.bestLapTime ?? row.best ?? row.bestLap ?? 0);
+        const totalMs = parseTimeToMs(row.totalMs ?? row.time ?? row.totalTime ?? row.total ?? row.clockMs ?? row.clock ?? 0);
+        const forecastMs = parseTimeToMs(row.estTimeMs ?? row.estTime ?? row.estTimeFmt ?? row.projectedTime ?? row.forecastTime ?? 0);
+        const laps = Number(row.lapcount ?? row.laps ?? row.lapCount ?? row.lap ?? 0) || 0;
+        return {
+          raw: row,
+          index,
+          key: `${driverNumber}__${driverName}`,
+          driverNumber,
+          driverName,
+          label: driverNumber ? `${driverNumber} - ${driverName}` : driverName,
+          lastLapMs,
+          bestLapMs,
+          totalMs,
+          forecastMs,
+          laps
+        };
+      }).filter(r => r.driverName);
+    }
+
+    function classifyTrend(currentMs, previousMs){
+      const cur = Number(currentMs) || 0;
+      const prev = Number(previousMs) || 0;
+      if (cur <= 0 || prev <= 0) return '';
+      const delta = cur - prev;
+      if (delta <= -12) return 'good';
+      if (delta >= 12) return 'bad';
+      return 'mid';
+    }
+
+    function setTrendClass(trend){
+      els.lastLap.classList.remove('trend-good','trend-bad','trend-mid');
+      if (trend) els.lastLap.classList.add(`trend-${trend}`);
+    }
+
+    function currentThemeIndex(){
+      const i = THEMES.findIndex(t => t.key === state.theme);
+      return i >= 0 ? i : 0;
+    }
+
+    function applyTheme(themeName){
+      const valid = THEMES.map(t => t.key);
+      state.theme = valid.includes(themeName) ? themeName : 'theme-purple-night';
+      document.body.className = state.theme;
+      const meta = THEMES.find(t => t.key === state.theme);
+      els.themeHint.textContent = meta ? meta.label : 'Theme';
+      lsSet(LS_THEME, state.theme);
+    }
+
+    function cycleTheme(){
+      const next = (currentThemeIndex() + 1) % THEMES.length;
+      applyTheme(THEMES[next].key);
+    }
+
+    function setLive(ok, text){
+      els.livePill.textContent = text;
+      els.livePill.classList.toggle('on', !!ok);
+      els.livePill.classList.toggle('off', !ok);
+    }
+
+    function setVoiceUi(){
+      els.voiceBtn.textContent = state.voiceOn ? 'Voz ON' : 'Voz OFF';
+      els.voiceBtn.classList.toggle('on', state.voiceOn);
+    }
+
+    function populateSelect(rows){
+      const wanted = state.selectedPilotKey || lsGet(LS_PILOT, '');
+      const options = ['<option value="">Selecciona piloto</option>'];
+      for (const r of rows) {
+        const selected = r.key === wanted ? ' selected' : '';
+        options.push(`<option value="${escapeHtml(r.key)}"${selected}>${escapeHtml(r.label)}</option>`);
+      }
+      els.pilotSelect.innerHTML = options.join('');
+      state.selectedPilotKey = els.pilotSelect.value || '';
+      if (!state.selectedPilotKey && rows.length === 1) {
+        state.selectedPilotKey = rows[0].key;
+        els.pilotSelect.value = rows[0].key;
+      }
+      updateSelectedPilotMeta();
+    }
+
+    function updateSelectedPilotMeta(){
+      const row = state.rows.find(r => r.key === state.selectedPilotKey);
+      els.pilotName.textContent = row ? row.driverName : 'Sin piloto';
+      if (!row) {
+        els.lastLap.textContent = '--.--';
+        setTrendClass('');
+        els.note.textContent = state.rows.length ? 'Selecciona un piloto' : 'Esperando datos...';
+        els.lapsValue.textContent = '-';
+        els.forecastValue.textContent = '-';
+        els.bestValue.textContent = '-';
+        els.totalValue.textContent = '-';
+      }
+    }
+
+    function flashLastLap(){
+      els.lastLap.classList.remove('flash');
+      void els.lastLap.offsetWidth;
+      els.lastLap.classList.add('flash');
+    }
+
+    function speakText(text){
+      if (!state.voiceOn || !state.speechUnlocked || !text || !('speechSynthesis' in window)) return;
+      try {
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(text);
+        const voices = state.voices.length ? state.voices : window.speechSynthesis.getVoices();
+        const pick = voices.find(v => /^es(-|_)?MX/i.test(v.lang)) || voices.find(v => /^es/i.test(v.lang)) || voices[0];
+        if (pick) u.voice = pick;
+        u.lang = (pick && pick.lang) ? pick.lang : 'es-MX';
+        u.rate = 1.7;
+        u.pitch = 1.0;
+        u.volume = 1.0;
+        window.speechSynthesis.speak(u);
+      } catch {}
+    }
+
+    async function unlockSpeech(){
+      state.speechUnlocked = true;
+      if (!('speechSynthesis' in window)) return;
+      try {
+        const u = new SpeechSynthesisUtterance(' ');
+        u.volume = 0;
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(u);
+      } catch {}
+    }
+
+    async function requestWakeLock(){
+      if (!('wakeLock' in navigator) || document.hidden) return;
+      try {
+        if (state.wakeLock) return;
+        state.wakeLock = await navigator.wakeLock.request('screen');
+        state.wakeLock.addEventListener('release', () => { state.wakeLock = null; });
+      } catch {}
+    }
+
+    function startKeepAlive(){
+      if (state.wakeTick) clearInterval(state.wakeTick);
+      state.wakeTick = setInterval(() => {
+        if (!document.hidden) requestWakeLock();
+      }, 15000);
+      requestWakeLock();
+    }
+
+    async function onVoiceToggle(){
+      state.voiceOn = !state.voiceOn;
+      if (state.voiceOn) {
+        await unlockSpeech();
+        startKeepAlive();
+      } else {
+        try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch {}
+      }
+      lsSet(LS_VOICE, state.voiceOn ? '1' : '0');
+      setVoiceUi();
+      els.note.textContent = state.voiceOn ? 'Voz activa' : 'Voz apagada';
+      if (state.voiceOn) {
+        setTimeout(() => {
+          try { speakText('Spotter listo'); } catch {}
+        }, 180);
+      }
+    }
+
+    function renderSelectedPilot(){
+      const row = state.rows.find(r => r.key === state.selectedPilotKey);
+      if (!row) return;
+
+      const lapText = formatLapMs(row.lastLapMs);
+      const prevLap = state.pilotLapMemory[row.key] || 0;
+      const trend = classifyTrend(row.lastLapMs, prevLap);
+
+      els.pilotName.textContent = row.driverName;
+      els.lastLap.textContent = lapText;
+      setTrendClass(trend);
+
+      els.lapsValue.textContent = row.laps > 0 ? String(row.laps) : '-';
+      els.forecastValue.textContent = row.forecastMs > 0 ? formatLapMs(row.forecastMs) : '-';
+      els.bestValue.textContent = row.bestLapMs > 0 ? formatLapMs(row.bestLapMs) : '-';
+      els.totalValue.textContent = row.totalMs > 0 ? formatLapMs(row.totalMs) : '-';
+
+      if (trend === 'good') els.note.textContent = 'Mejor que la anterior';
+      else if (trend === 'bad') els.note.textContent = 'Peor que la anterior';
+      else if (trend === 'mid' && row.lastLapMs > 0 && prevLap > 0) els.note.textContent = 'En promedio';
+      else els.note.textContent = row.lastLapMs > 0 ? 'Última lectura recibida' : 'Aún sin vuelta válida';
+
+      if (row.lastLapMs > 0 && row.lastLapMs !== state.lastRenderedLapMs) {
+        flashLastLap();
+        state.lastRenderedLapMs = row.lastLapMs;
+      }
+
+      if (row.lastLapMs > 0 && row.lastLapMs !== prevLap) {
+        state.pilotLapMemory[row.key] = row.lastLapMs;
+      }
+
+      if (state.voiceOn && row.lastLapMs > 0 && row.lastLapMs !== state.lastAnnouncedLapMs) {
+        const speech = lapToSpeech(row.lastLapMs);
+        if (speech && speech !== state.lastSpokenText) {
+          state.lastSpokenText = speech;
+          state.lastAnnouncedLapMs = row.lastLapMs;
+          speakText(speech);
+        }
+      }
+    }
+
+    function applySnapshotData(data){
+      const raceName = String((data && (data.raceName || (data.parsed && data.parsed.raceName) || '')) || '').trim();
+      els.raceName.textContent = raceName || 'Sin carrera';
+
+      const rows = extractRows(data || {});
+      state.rows = rows;
+      populateSelect(rows);
+      setLive(true, rows.length ? 'LIVE' : 'LIVE');
+      renderSelectedPilot();
+    }
+
+    function stopPolling(){
+      try { if (state.pollTimer) clearInterval(state.pollTimer); } catch {}
+      state.pollTimer = null;
+    }
+
+    async function pollCurrentRaceOnce(){
+      try{
+        if (!state.firestore) return;
+        const snap = await state.firestore.doc(FIRESTORE_DOC_PATH).get({ source: 'default' });
+        if (!snap.exists) {
+          setLive(false, 'VACÍO');
+          return;
+        }
+        state.connected = true;
+        state.lastSnapshotAt = Date.now();
+        applySnapshotData(snap.data() || {});
+      }catch(err){
+        console.error('pollCurrentRaceOnce', err);
+      }
+    }
+
+    function disconnectFirestore(){
+      try { if (state.unsubDoc) state.unsubDoc(); } catch {}
+      state.unsubDoc = null;
+      state.connected = false;
+      stopPolling();
+    }
+
+    async function connectFirestore(){
+      if (!window.firebase || !firebase.apps) {
+        setLive(false, 'SDK');
+        els.note.textContent = 'No cargó Firebase';
+        return;
+      }
+
+      disconnectFirestore();
+      stopPolling();
+
+      try {
+        const appName = `spotter-simple-lastlap-${FIREBASE_CONFIG.projectId}`;
+        let app = firebase.apps.find(a => a.name === appName);
+        if (!app) app = firebase.initializeApp(FIREBASE_CONFIG, appName);
+
+        state.firebaseApp = app;
+        state.firestore = firebase.firestore(app);
+
+        try {
+          state.firestore.settings({
+            experimentalForceLongPolling: true,
+            useFetchStreams: false
+          });
+        } catch {}
+
+        const ref = state.firestore.doc(FIRESTORE_DOC_PATH);
+
+        state.unsubDoc = ref.onSnapshot((snap) => {
+          state.lastSnapshotAt = Date.now();
+          if (!snap.exists) {
+            setLive(false, 'VACÍO');
+            els.note.textContent = 'El documento no existe';
+            return;
+          }
+          state.connected = true;
+          applySnapshotData(snap.data() || {});
+          els.note.textContent = state.rows.length ? 'Recibiendo datos...' : 'Sin pilotos en feed';
+        }, async (err) => {
+          console.error('onSnapshot', err);
+          setLive(false, 'RETRY');
+          els.note.textContent = 'Snapshot falló, entro a polling';
+          stopPolling();
+          state.pollTimer = setInterval(() => {
+            pollCurrentRaceOnce();
+          }, 2500);
+          await pollCurrentRaceOnce();
+        });
+
+        state.pollTimer = setInterval(() => {
+          const age = Date.now() - (state.lastSnapshotAt || 0);
+          if (!state.lastSnapshotAt || age > 6000) {
+            pollCurrentRaceOnce();
+          }
+        }, 3000);
+
+        setLive(true, 'LIVE');
+        els.note.textContent = 'Esperando feed...';
+      } catch (err) {
+        console.error('connectFirestore', err);
+        setLive(false, 'ERROR');
+        els.note.textContent = 'No pude conectar Firebase';
+      }
+    }
+
+    function bindEvents(){
+      els.voiceBtn.addEventListener('click', onVoiceToggle);
+      els.themeBtn.addEventListener('click', cycleTheme);
+      els.pilotSelect.addEventListener('change', () => {
+        state.selectedPilotKey = els.pilotSelect.value || '';
+        lsSet(LS_PILOT, state.selectedPilotKey);
+        state.lastAnnouncedLapMs = null;
+        state.lastSpokenText = '';
+        renderSelectedPilot();
+      });
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden && state.voiceOn) requestWakeLock();
+      });
+      if ('speechSynthesis' in window) {
+        const refreshVoices = () => { state.voices = window.speechSynthesis.getVoices() || []; };
+        refreshVoices();
+        window.speechSynthesis.onvoiceschanged = refreshVoices;
+      }
+    }
+
+    async function init(){
+      state.selectedPilotKey = lsGet(LS_PILOT, '');
+      state.voiceOn = lsGet(LS_VOICE, '0') === '1';
+      applyTheme(lsGet(LS_THEME, 'theme-purple-night'));
+      setVoiceUi();
+      bindEvents();
+      connectFirestore();
+    }
+
+    init();
+  </script>
+</body>
+</html>
