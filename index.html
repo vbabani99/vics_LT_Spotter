@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
-  <title>Vics_LT_Spotter_v0.0.1.1</title>
+  <title>Vics_LT_Spotter_v0.0.1.2</title>
   <style>
     :root{
       --bg:#050507;
@@ -20,9 +20,10 @@
       --mid:#facc15;
       --best:#a855f7;
       --radius:22px;
-      --shadow:0 14px 36px rgba(0,0,0,.38);
+      --shadow:0 18px 40px rgba(0,0,0,.44);
       --glow:0 0 24px rgba(255,255,255,.05);
       --chip:#0f1117;
+      --shine:rgba(255,255,255,.05);
     }
     body.theme-oled{
       --bg:#030303; --bg2:#090909; --panel:rgba(14,14,16,.78); --panel2:rgba(20,20,22,.92);
@@ -69,11 +70,12 @@
       content:"";
       position:fixed; inset:0; pointer-events:none;
       background:
-        linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px);
-      background-size: 22px 22px;
-      mask-image: radial-gradient(circle at center, black 35%, transparent 80%);
-      opacity:.25;
+        linear-gradient(rgba(255,255,255,.016) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.016) 1px, transparent 1px),
+        repeating-linear-gradient(135deg, rgba(255,255,255,.018) 0 2px, transparent 2px 8px);
+      background-size: 22px 22px, 22px 22px, auto;
+      mask-image: radial-gradient(circle at center, black 35%, transparent 82%);
+      opacity:.22;
     }
     .app{
       width:min(100%, 520px);
@@ -83,22 +85,27 @@
       display:flex; flex-direction:column; gap:10px;
     }
     .shell,.main{
-      background:linear-gradient(180deg,var(--panel2),var(--panel));
+      background:
+        linear-gradient(180deg,var(--panel2),var(--panel)),
+        linear-gradient(180deg, var(--shine), transparent 45%);
       border:1px solid var(--line);
       border-radius:var(--radius);
-      box-shadow:var(--shadow);
+      box-shadow:var(--shadow), inset 0 1px 0 rgba(255,255,255,.04);
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
     }
-    .shell{padding:12px}
+    .shell{padding:10px 10px 12px}
     .topBrand{
       display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
       margin-bottom:10px;
     }
     .brandLogo{
-      width:108px; height:58px; object-fit:contain; display:block;
-      filter: drop-shadow(0 8px 18px rgba(0,0,0,.30));
-      border-radius:10px;
+      width:110px; height:58px; object-fit:contain; display:block;
+      filter: drop-shadow(0 10px 18px rgba(0,0,0,.34));
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.06);
+      background:rgba(255,255,255,.02);
+      padding:2px;
     }
     .brandTag{
       text-align:center; font-weight:900; line-height:1.05;
@@ -110,27 +117,29 @@
     .controlBar{
       display:grid;
       grid-template-columns: auto 1fr auto auto;
-      gap:8px;
+      gap:6px;
       align-items:center;
     }
     .pill,.iconBtn,.voiceBtn,.pilotSelect{
-      min-height:38px;
-      border-radius:14px;
+      min-height:34px;
+      border-radius:13px;
       border:1px solid var(--line);
-      background:var(--chip);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.03), transparent 55%),
+        var(--chip);
       color:var(--text);
       box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
     }
     .pill{
-      min-width:66px; padding:0 10px; display:flex; align-items:center; justify-content:center;
-      font-size:11px; font-weight:900; letter-spacing:.10em; text-transform:uppercase;
+      min-width:58px; padding:0 9px; display:flex; align-items:center; justify-content:center;
+      font-size:10px; font-weight:900; letter-spacing:.10em; text-transform:uppercase;
     }
     .pill.on{background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; border-color:transparent}
     .pill.off{background:var(--chip); color:var(--muted)}
     .pilotSelect{
       width:100%;
       appearance:none; -webkit-appearance:none;
-      padding:0 34px 0 12px; font-size:14px; font-weight:800; outline:none;
+      padding:0 30px 0 11px; font-size:13px; font-weight:800; outline:none;
       background-image:
         linear-gradient(45deg,transparent 50%, #cbd5e1 50%),
         linear-gradient(135deg,#cbd5e1 50%, transparent 50%);
@@ -138,13 +147,13 @@
       background-size:5px 5px,5px 5px; background-repeat:no-repeat;
     }
     .voiceBtn{
-      padding:0 12px; font-size:11px; font-weight:900; letter-spacing:.08em; text-transform:uppercase; cursor:pointer;
-      min-width:80px;
+      padding:0 10px; font-size:10px; font-weight:900; letter-spacing:.08em; text-transform:uppercase; cursor:pointer;
+      min-width:72px;
     }
     .voiceBtn.on{background:linear-gradient(135deg,var(--accent),var(--accent2)); border-color:transparent; color:#fff}
     .iconBtn{
-      width:38px; min-width:38px; cursor:pointer; display:flex; align-items:center; justify-content:center;
-      font-size:16px; font-weight:900;
+      width:34px; min-width:34px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+      font-size:14px; font-weight:900;
     }
     .themeHint{
       margin-top:8px;
@@ -157,16 +166,19 @@
       flex:1;
       display:flex; flex-direction:column;
       justify-content:flex-start;
-      padding:18px 16px 16px;
+      padding:16px 14px 14px;
       position:relative;
       overflow:hidden;
     }
     .main::before{
       content:"";
       position:absolute; inset:auto -20% 50% -20%; height:140px;
-      background:radial-gradient(circle, color-mix(in srgb, var(--accent) 18%, transparent), transparent 65%);
+      background:
+        radial-gradient(circle, color-mix(in srgb, var(--accent) 18%, transparent), transparent 65%),
+        repeating-linear-gradient(135deg, rgba(255,255,255,.018) 0 2px, transparent 2px 7px);
       pointer-events:none;
-      filter: blur(20px);
+      filter: blur(18px);
+      opacity:.9;
     }
     .raceName{
       position:relative;
@@ -279,7 +291,7 @@
     <section class="shell">
       <div class="topBrand">
         <img class="brandLogo" src="https://i.ibb.co/bjknVM36/vic-pulse-timing.gif" alt="Vic's Pulse Timing" />
-        <div class="brandTag">🐊 x.vic!<small>v0.0.1.1</small></div>
+        <div class="brandTag">🐊 x.vic!<small>v0.0.1.2</small></div>
       </div>
 
       <div class="controlBar">
@@ -327,7 +339,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
   <script>
     const APP_NAME = 'Vics_LT_Spotter';
-    const APP_VERSION = 'v0.0.1.1';
+    const APP_VERSION = 'v0.0.1.2';
     const LS_PILOT = 'spotter_simple_lastlap_pilot_key';
     const LS_VOICE = 'spotter_simple_lastlap_voice_on';
     const LS_THEME = 'spotter_simple_lastlap_theme';
@@ -381,7 +393,8 @@
       pollTimer: null,
       lastSnapshotAt: 0,
       theme: 'theme-purple-night',
-      pilotLapMemory: {}
+      pilotLapMemory: {},
+      pilotTrendMemory: {}
     };
 
     function lsGet(key, fallback=''){ try { const v = localStorage.getItem(key); return v == null ? fallback : v; } catch { return fallback; } }
@@ -613,7 +626,13 @@
 
       const lapText = formatLapMs(row.lastLapMs);
       const prevLap = state.pilotLapMemory[row.key] || 0;
-      const trend = classifyTrend(row.lastLapMs, prevLap);
+      const isNewLap = row.lastLapMs > 0 && row.lastLapMs !== prevLap;
+
+      let trend = state.pilotTrendMemory[row.key] || '';
+      if (isNewLap) {
+        trend = classifyTrend(row.lastLapMs, prevLap);
+        state.pilotTrendMemory[row.key] = trend || '';
+      }
 
       els.pilotName.textContent = row.driverName;
       els.lastLap.textContent = lapText;
@@ -629,16 +648,16 @@
       else if (trend === 'mid' && row.lastLapMs > 0 && prevLap > 0) els.note.textContent = 'En promedio';
       else els.note.textContent = row.lastLapMs > 0 ? 'Última lectura recibida' : 'Aún sin vuelta válida';
 
-      if (row.lastLapMs > 0 && row.lastLapMs !== state.lastRenderedLapMs) {
+      if (isNewLap && row.lastLapMs !== state.lastRenderedLapMs) {
         flashLastLap();
         state.lastRenderedLapMs = row.lastLapMs;
       }
 
-      if (row.lastLapMs > 0 && row.lastLapMs !== prevLap) {
+      if (isNewLap) {
         state.pilotLapMemory[row.key] = row.lastLapMs;
       }
 
-      if (state.voiceOn && row.lastLapMs > 0 && row.lastLapMs !== state.lastAnnouncedLapMs) {
+      if (state.voiceOn && isNewLap && row.lastLapMs !== state.lastAnnouncedLapMs) {
         const speech = lapToSpeech(row.lastLapMs);
         if (speech && speech !== state.lastSpokenText) {
           state.lastSpokenText = speech;
