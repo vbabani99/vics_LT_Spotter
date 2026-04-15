@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
-  <title>Vics_LT_Spotter_v0.0.1.2</title>
+  <title>Vics_LT_Spotter_v0.0.1.3</title>
   <style>
     :root{
       --bg:#050507;
@@ -161,6 +161,77 @@
       color:var(--muted);
       font-size:10px; letter-spacing:.12em; text-transform:uppercase;
     }
+    .voiceSettings{
+      margin-top:8px;
+      display:grid;
+      grid-template-columns: 1fr 104px;
+      gap:8px;
+      align-items:end;
+    }
+    .voiceField{
+      display:flex;
+      flex-direction:column;
+      gap:5px;
+    }
+    .voiceFieldLabel{
+      color:var(--muted);
+      font-size:10px;
+      font-weight:900;
+      letter-spacing:.14em;
+      text-transform:uppercase;
+      padding-left:2px;
+    }
+    .voiceSelect,.speedRange{
+      width:100%;
+      min-height:34px;
+      border-radius:13px;
+      border:1px solid var(--line);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.03), transparent 55%),
+        var(--chip);
+      color:var(--text);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+      outline:none;
+    }
+    .voiceSelect{
+      appearance:none; -webkit-appearance:none;
+      padding:0 30px 0 11px;
+      font-size:12px;
+      font-weight:800;
+      background-image:
+        linear-gradient(45deg,transparent 50%, #cbd5e1 50%),
+        linear-gradient(135deg,#cbd5e1 50%, transparent 50%);
+      background-position:calc(100% - 18px) 50%,calc(100% - 12px) 50%;
+      background-size:5px 5px,5px 5px;
+      background-repeat:no-repeat;
+    }
+    .speedWrap{
+      display:flex;
+      flex-direction:column;
+      gap:5px;
+    }
+    .speedHead{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:6px;
+      padding:0 2px;
+      color:var(--muted);
+      font-size:10px;
+      font-weight:900;
+      letter-spacing:.14em;
+      text-transform:uppercase;
+    }
+    .speedValue{
+      color:var(--text);
+      font-size:11px;
+      letter-spacing:.04em;
+    }
+    .speedRange{
+      min-height:auto;
+      padding:8px 10px;
+      accent-color: var(--accent);
+    }
 
     .main{
       flex:1;
@@ -279,8 +350,9 @@
 
     @media (max-width:420px){
       .controlBar{grid-template-columns:auto 1fr auto auto; gap:6px}
-      .pill,.voiceBtn,.iconBtn,.pilotSelect{min-height:36px}
+      .pill,.voiceBtn,.iconBtn,.pilotSelect,.voiceSelect{min-height:36px}
       .voiceBtn{min-width:74px; padding:0 10px; font-size:10px}
+      .voiceSettings{grid-template-columns:1fr; gap:7px}
       .grid{gap:7px}
       .metric{min-height:68px; padding:9px 10px}
     }
@@ -291,7 +363,7 @@
     <section class="shell">
       <div class="topBrand">
         <img class="brandLogo" src="https://i.ibb.co/bjknVM36/vic-pulse-timing.gif" alt="Vic's Pulse Timing" />
-        <div class="brandTag">🐊 x.vic!<small>v0.0.1.2</small></div>
+        <div class="brandTag">🐊 x.vic!<small>v0.0.1.3</small></div>
       </div>
 
       <div class="controlBar">
@@ -302,6 +374,23 @@
         <button id="themeBtn" class="iconBtn" type="button" aria-label="Cambiar tema">🎨</button>
         <button id="voiceBtn" class="voiceBtn" type="button">Voz OFF</button>
       </div>
+
+      <div class="voiceSettings">
+        <div class="voiceField">
+          <div class="voiceFieldLabel">Locutor</div>
+          <select id="voiceSelect" class="voiceSelect">
+            <option value="">Voz automática</option>
+          </select>
+        </div>
+        <div class="speedWrap">
+          <div class="speedHead">
+            <span>Velocidad</span>
+            <span id="speedValue" class="speedValue">1.20x</span>
+          </div>
+          <input id="speedRange" class="speedRange" type="range" min="1" max="2.5" step="0.1" value="1.2" />
+        </div>
+      </div>
+
       <div id="themeHint" class="themeHint">Purple Night</div>
     </section>
 
@@ -339,10 +428,12 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
   <script>
     const APP_NAME = 'Vics_LT_Spotter';
-    const APP_VERSION = 'v0.0.1.2';
+    const APP_VERSION = 'v0.0.1.3';
     const LS_PILOT = 'spotter_simple_lastlap_pilot_key';
     const LS_VOICE = 'spotter_simple_lastlap_voice_on';
     const LS_THEME = 'spotter_simple_lastlap_theme';
+    const LS_VOICE_NAME = 'spotter_simple_lastlap_voice_name';
+    const LS_VOICE_RATE = 'spotter_simple_lastlap_voice_rate';
     const THEMES = [
       { key:'theme-oled', label:'OLED' },
       { key:'theme-carbon-red', label:'Carbon Red' },
@@ -365,6 +456,9 @@
       themeBtn: document.getElementById('themeBtn'),
       themeHint: document.getElementById('themeHint'),
       voiceBtn: document.getElementById('voiceBtn'),
+      voiceSelect: document.getElementById('voiceSelect'),
+      speedRange: document.getElementById('speedRange'),
+      speedValue: document.getElementById('speedValue'),
       livePill: document.getElementById('livePill'),
       raceName: document.getElementById('raceName'),
       pilotName: document.getElementById('pilotName'),
@@ -379,6 +473,8 @@
     const state = {
       voiceOn: false,
       speechUnlocked: false,
+      voiceName: '',
+      voiceRate: 1.2,
       rows: [],
       selectedPilotKey: '',
       lastRenderedLapMs: null,
@@ -522,6 +618,44 @@
       els.voiceBtn.classList.toggle('on', state.voiceOn);
     }
 
+    function clampRate(v){
+      const n = Number(v);
+      if (!Number.isFinite(n)) return 1.2;
+      return Math.max(1, Math.min(2.5, n));
+    }
+
+    function updateRateUi(){
+      const rate = clampRate(state.voiceRate);
+      state.voiceRate = rate;
+      if (els.speedRange) els.speedRange.value = String(rate);
+      if (els.speedValue) els.speedValue.textContent = `${rate.toFixed(1)}x`;
+    }
+
+    function populateVoiceSelect(){
+      if (!els.voiceSelect) return;
+      const current = state.voiceName || '';
+      const voices = (state.voices || []).slice().sort((a, b) => {
+        const aMx = /^es(-|_)?MX/i.test(a.lang) ? 0 : /^es/i.test(a.lang) ? 1 : 2;
+        const bMx = /^es(-|_)?MX/i.test(b.lang) ? 0 : /^es/i.test(b.lang) ? 1 : 2;
+        if (aMx !== bMx) return aMx - bMx;
+        return String(a.name || '').localeCompare(String(b.name || ''));
+      });
+      const options = ['<option value="">Voz automática</option>'];
+      for (const v of voices) {
+        const label = `${v.name || 'Sin nombre'} (${v.lang || 'sin idioma'})`;
+        const selected = v.name === current ? ' selected' : '';
+        options.push(`<option value="${escapeHtml(v.name || '')}"${selected}>${escapeHtml(label)}</option>`);
+      }
+      els.voiceSelect.innerHTML = options.join('');
+      if (current && !voices.some(v => v.name === current)) {
+        state.voiceName = '';
+        lsSet(LS_VOICE_NAME, '');
+        els.voiceSelect.value = '';
+      } else {
+        els.voiceSelect.value = state.voiceName || '';
+      }
+    }
+
     function populateSelect(rows){
       const wanted = state.selectedPilotKey || lsGet(LS_PILOT, '');
       const options = ['<option value="">Selecciona piloto</option>'];
@@ -564,10 +698,11 @@
         window.speechSynthesis.cancel();
         const u = new SpeechSynthesisUtterance(text);
         const voices = state.voices.length ? state.voices : window.speechSynthesis.getVoices();
-        const pick = voices.find(v => /^es(-|_)?MX/i.test(v.lang)) || voices.find(v => /^es/i.test(v.lang)) || voices[0];
+        const selectedVoice = state.voiceName ? voices.find(v => v.name === state.voiceName) : null;
+        const pick = selectedVoice || voices.find(v => /^es(-|_)?MX/i.test(v.lang)) || voices.find(v => /^es/i.test(v.lang)) || voices[0];
         if (pick) u.voice = pick;
         u.lang = (pick && pick.lang) ? pick.lang : 'es-MX';
-        u.rate = 1.7;
+        u.rate = clampRate(state.voiceRate);
         u.pitch = 1.0;
         u.volume = 1.0;
         window.speechSynthesis.speak(u);
@@ -780,21 +915,46 @@
         state.lastSpokenText = '';
         renderSelectedPilot();
       });
+      els.voiceSelect.addEventListener('change', () => {
+        state.voiceName = els.voiceSelect.value || '';
+        lsSet(LS_VOICE_NAME, state.voiceName);
+        if (state.voiceOn) {
+          els.note.textContent = state.voiceName ? 'Locutor actualizado' : 'Voz automática activa';
+        }
+      });
+      els.speedRange.addEventListener('input', () => {
+        state.voiceRate = clampRate(els.speedRange.value);
+        updateRateUi();
+      });
+      els.speedRange.addEventListener('change', () => {
+        state.voiceRate = clampRate(els.speedRange.value);
+        updateRateUi();
+        lsSet(LS_VOICE_RATE, String(state.voiceRate));
+        if (state.voiceOn) els.note.textContent = `Velocidad ${state.voiceRate.toFixed(1)}x`;
+      });
       document.addEventListener('visibilitychange', () => {
         if (!document.hidden && state.voiceOn) requestWakeLock();
       });
       if ('speechSynthesis' in window) {
-        const refreshVoices = () => { state.voices = window.speechSynthesis.getVoices() || []; };
+        const refreshVoices = () => {
+          state.voices = window.speechSynthesis.getVoices() || [];
+          populateVoiceSelect();
+        };
         refreshVoices();
         window.speechSynthesis.onvoiceschanged = refreshVoices;
+      } else {
+        populateVoiceSelect();
       }
     }
 
     async function init(){
       state.selectedPilotKey = lsGet(LS_PILOT, '');
       state.voiceOn = lsGet(LS_VOICE, '0') === '1';
+      state.voiceName = lsGet(LS_VOICE_NAME, '');
+      state.voiceRate = clampRate(lsGet(LS_VOICE_RATE, '1.2'));
       applyTheme(lsGet(LS_THEME, 'theme-purple-night'));
       setVoiceUi();
+      updateRateUi();
       bindEvents();
       connectFirestore();
     }
