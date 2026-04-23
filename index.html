@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
-  <title>Vics_LT_Spotter_v0.0.1.3</title>
+  <title>Vics_LT_Spotter_v0.0.1.9</title>
   <style>
     :root{
       --bg:#050507;
@@ -100,7 +100,7 @@
       margin-bottom:10px;
     }
     .brandLogo{
-      width:110px; height:58px; object-fit:contain; display:block;
+      width:204px; height:108px; object-fit:contain; display:block;
       filter: drop-shadow(0 10px 18px rgba(0,0,0,.34));
       border-radius:12px;
       border:1px solid rgba(255,255,255,.06);
@@ -110,13 +110,64 @@
     .brandTag{
       text-align:center; font-weight:900; line-height:1.05;
       font-size:14px;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:3px;
+    }
+    .brandLine{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:7px;
+      white-space:nowrap;
     }
     .brandTag small{
-      display:block; color:var(--muted); font-size:11px; letter-spacing:.12em; text-transform:uppercase; margin-top:3px;
+      display:block; color:var(--muted); font-size:11px; letter-spacing:.12em; text-transform:uppercase; margin-top:1px;
+    }
+    .liveRadio{
+      display:inline-flex;
+      align-items:center;
+      gap:4px;
+      padding:2px 6px 2px 4px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.035);
+      color:var(--muted);
+      font-size:9px;
+      font-weight:1000;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      vertical-align:middle;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+    }
+    .liveRadio::before{
+      content:"";
+      width:10px;
+      height:10px;
+      border-radius:999px;
+      display:inline-block;
+      background:var(--bad);
+      box-shadow:0 0 10px color-mix(in srgb, var(--bad) 70%, transparent);
+    }
+    .liveRadio.on{
+      color:#eafff1;
+      border-color:rgba(34,197,94,.45);
+      background:rgba(34,197,94,.12);
+    }
+    .liveRadio.on::before{
+      background:var(--good);
+      box-shadow:0 0 12px color-mix(in srgb, var(--good) 78%, transparent);
+    }
+    .liveRadio.off{
+      color:#ffe7e7;
+      border-color:rgba(239,68,68,.44);
+      background:rgba(239,68,68,.11);
     }
     .controlBar{
       display:grid;
-      grid-template-columns: auto 1fr auto auto;
+      grid-template-columns: 1fr auto auto;
       gap:6px;
       align-items:center;
     }
@@ -161,6 +212,19 @@
       color:var(--muted);
       font-size:10px; letter-spacing:.12em; text-transform:uppercase;
     }
+    .voiceStatus{
+      margin-top:8px;
+      text-align:center;
+      color:var(--muted);
+      font-size:10px;
+      font-weight:900;
+      letter-spacing:.10em;
+      text-transform:uppercase;
+      min-height:1.2em;
+    }
+    .voiceStatus.ok{color:var(--good)}
+    .voiceStatus.warn{color:var(--mid)}
+    .voiceStatus.bad{color:var(--bad)}
     .voiceSettings{
       margin-top:8px;
       display:grid;
@@ -332,6 +396,7 @@
       font-variant-numeric:tabular-nums;
     }
     .metricValue.small{font-size:clamp(22px,5.2vw,30px)}
+    .metricValue.tiny{font-size:clamp(17px,4.3vw,24px); letter-spacing:-.035em}
     .metricValue.best{color:var(--best)}
     .footer{
       text-align:center;
@@ -349,7 +414,7 @@
     }
 
     @media (max-width:420px){
-      .controlBar{grid-template-columns:auto 1fr auto auto; gap:6px}
+      .controlBar{grid-template-columns:1fr auto auto; gap:6px}
       .pill,.voiceBtn,.iconBtn,.pilotSelect,.voiceSelect{min-height:36px}
       .voiceBtn{min-width:74px; padding:0 10px; font-size:10px}
       .voiceSettings{grid-template-columns:1fr; gap:7px}
@@ -363,11 +428,13 @@
     <section class="shell">
       <div class="topBrand">
         <img class="brandLogo" src="https://i.ibb.co/bjknVM36/vic-pulse-timing.gif" alt="Vic's Pulse Timing" />
-        <div class="brandTag">🐊 x.vic!<small>v0.0.1.3</small></div>
+        <div class="brandTag">
+          <span class="brandLine">🐊 x.vic! <span id="livePill" class="liveRadio off" aria-label="Estado de conexión">OFF</span></span>
+          <small>v0.0.1.9</small>
+        </div>
       </div>
 
       <div class="controlBar">
-        <div id="livePill" class="pill off">OFF</div>
         <select id="pilotSelect" class="pilotSelect">
           <option value="">Cargando pilotos...</option>
         </select>
@@ -391,6 +458,7 @@
         </div>
       </div>
 
+      <div id="voiceStatus" class="voiceStatus">Motor de voz: revisando...</div>
       <div id="themeHint" class="themeHint">Purple Night</div>
     </section>
 
@@ -403,12 +471,32 @@
 
       <div class="grid">
         <div class="metric">
+          <div class="metricLabel">Posición</div>
+          <div id="positionValue" class="metricValue">-</div>
+        </div>
+        <div class="metric">
           <div class="metricLabel">Vueltas</div>
           <div id="lapsValue" class="metricValue">-</div>
         </div>
         <div class="metric">
-          <div class="metricLabel">Pronóstico</div>
-          <div id="forecastValue" class="metricValue small">-</div>
+          <div class="metricLabel">Pronóstico V/T</div>
+          <div id="forecastValue" class="metricValue tiny">-</div>
+        </div>
+        <div class="metric">
+          <div class="metricLabel">Promedio</div>
+          <div id="meanValue" class="metricValue small">-</div>
+        </div>
+        <div class="metric">
+          <div class="metricLabel">Ritmo</div>
+          <div id="paceValue" class="metricValue small">-</div>
+        </div>
+        <div class="metric">
+          <div class="metricLabel">Consistencia</div>
+          <div id="consistencyValue" class="metricValue small">-</div>
+        </div>
+        <div class="metric">
+          <div class="metricLabel">Desv. Std.</div>
+          <div id="sigmaValue" class="metricValue small">-</div>
         </div>
         <div class="metric">
           <div class="metricLabel">Mejor vuelta</div>
@@ -428,7 +516,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
   <script>
     const APP_NAME = 'Vics_LT_Spotter';
-    const APP_VERSION = 'v0.0.1.3';
+    const APP_VERSION = 'v0.0.1.9';
     const LS_PILOT = 'spotter_simple_lastlap_pilot_key';
     const LS_VOICE = 'spotter_simple_lastlap_voice_on';
     const LS_THEME = 'spotter_simple_lastlap_theme';
@@ -457,6 +545,7 @@
       themeHint: document.getElementById('themeHint'),
       voiceBtn: document.getElementById('voiceBtn'),
       voiceSelect: document.getElementById('voiceSelect'),
+      voiceStatus: document.getElementById('voiceStatus'),
       speedRange: document.getElementById('speedRange'),
       speedValue: document.getElementById('speedValue'),
       livePill: document.getElementById('livePill'),
@@ -464,8 +553,13 @@
       pilotName: document.getElementById('pilotName'),
       lastLap: document.getElementById('lastLap'),
       note: document.getElementById('note'),
+      positionValue: document.getElementById('positionValue'),
       lapsValue: document.getElementById('lapsValue'),
       forecastValue: document.getElementById('forecastValue'),
+      meanValue: document.getElementById('meanValue'),
+      paceValue: document.getElementById('paceValue'),
+      consistencyValue: document.getElementById('consistencyValue'),
+      sigmaValue: document.getElementById('sigmaValue'),
       bestValue: document.getElementById('bestValue'),
       totalValue: document.getElementById('totalValue')
     };
@@ -475,6 +569,9 @@
       speechUnlocked: false,
       voiceName: '',
       voiceRate: 1.2,
+      voiceReady: false,
+      voiceProbeTimers: [],
+      lastSpeakError: '',
       rows: [],
       selectedPilotKey: '',
       lastRenderedLapMs: null,
@@ -532,6 +629,40 @@
       return `${secs}.${String(millis).padStart(3,'0')}`;
     }
 
+    function toNumber(v){
+      if (v == null || v === '') return 0;
+      if (typeof v === 'number' && Number.isFinite(v)) return v;
+      const n = Number(String(v).replace('%','').replace(',','.').trim());
+      return Number.isFinite(n) ? n : 0;
+    }
+
+    function formatPercentValue(value){
+      if (value == null || value === '') return '-';
+      const raw = String(value).trim();
+      if (!raw) return '-';
+      if (raw.includes('%')) return raw;
+      const n = toNumber(value);
+      if (!Number.isFinite(n) || n <= 0) return '-';
+      return `${n.toFixed(1)}%`;
+    }
+
+    function formatMsShort(ms){
+      const n = Number(ms) || 0;
+      if (n <= 0) return '-';
+      if (n >= 1000) return formatLapMs(Math.round(n));
+      return `${Math.round(n)} ms`;
+    }
+
+    function formatForecast(laps, ms){
+      const l = Number(laps) || 0;
+      const hasLaps = l > 0;
+      const hasTime = Number(ms) > 0;
+      if (hasLaps && hasTime) return `${l}L / ${formatLapMs(ms)}`;
+      if (hasLaps) return `${l}L`;
+      if (hasTime) return formatLapMs(ms);
+      return '-';
+    }
+
     function lapToSpeech(ms){
       const n = Number(ms) || 0;
       if (n <= 0) return '';
@@ -541,6 +672,13 @@
       const cent = Math.floor((n % 1000) / 10);
       if (mins > 0) return `${mins} minutos ${secs} segundos punto ${cent}`;
       return `${secs} punto ${cent}`;
+    }
+
+    function parsePosition(row, index){
+      const rawPos = row.pos ?? row.position ?? row.rank ?? row.place ?? row.clasificacion ?? row.classificationPos ?? row.resultPos;
+      const n = Number(rawPos);
+      if (Number.isFinite(n) && n > 0) return Math.round(n);
+      return (Number(index) || 0) + 1;
     }
 
     function extractRows(payload){
@@ -556,10 +694,18 @@
         const bestLapMs = parseTimeToMs(row.bestMs ?? row.bestLapMs ?? row.bestTime ?? row.bestLapTime ?? row.best ?? row.bestLap ?? 0);
         const totalMs = parseTimeToMs(row.totalMs ?? row.time ?? row.totalTime ?? row.total ?? row.clockMs ?? row.clock ?? 0);
         const forecastMs = parseTimeToMs(row.estTimeMs ?? row.estTime ?? row.estTimeFmt ?? row.projectedTime ?? row.forecastTime ?? 0);
+        const forecastLaps = Number(row.estLap ?? row.estLaps ?? row.projectedLaps ?? row.forecastLaps ?? row.predictedLaps ?? 0) || 0;
+        const meanMs = parseTimeToMs(row.meanMs ?? row.meanTime ?? row.averageMs ?? row.avgMs ?? row.averageLapMs ?? row.avgLapMs ?? row.avgLapTime ?? row.media ?? 0);
+        const paceMs = parseTimeToMs(row.paceMs ?? row.paceTime ?? row.ritmoMs ?? row.ritmo ?? 0);
+        const consistencyRaw = row.consStr ?? row.consistencyStr ?? row.consPct ?? row.consistencyPct ?? row.consistency ?? row.cons ?? '';
+        const sigmaMs = parseTimeToMs(row.sigmaMs ?? row.stdMs ?? row.stdDevMs ?? row.desvStdMs ?? 0);
+        const sigmaRaw = row.sigmaStr ?? row.stdStr ?? row.stdDevStr ?? row.desvStdStr ?? '';
         const laps = Number(row.lapcount ?? row.laps ?? row.lapCount ?? row.lap ?? 0) || 0;
+        const position = parsePosition(row, index);
         return {
           raw: row,
           index,
+          position,
           key: `${driverNumber}__${driverName}`,
           driverNumber,
           driverName,
@@ -568,6 +714,12 @@
           bestLapMs,
           totalMs,
           forecastMs,
+          forecastLaps,
+          meanMs,
+          paceMs,
+          consistencyRaw,
+          sigmaMs,
+          sigmaRaw,
           laps
         };
       }).filter(r => r.driverName);
@@ -608,9 +760,11 @@
     }
 
     function setLive(ok, text){
-      els.livePill.textContent = text;
+      if (!els.livePill) return;
+      els.livePill.textContent = ok ? 'LIVE' : (text || 'OFF');
       els.livePill.classList.toggle('on', !!ok);
       els.livePill.classList.toggle('off', !ok);
+      els.livePill.setAttribute('aria-label', ok ? 'Conectado' : 'Sin conexión');
     }
 
     function setVoiceUi(){
@@ -631,16 +785,79 @@
       if (els.speedValue) els.speedValue.textContent = `${rate.toFixed(1)}x`;
     }
 
+    function setVoiceStatus(text, level='') {
+      if (!els.voiceStatus) return;
+      els.voiceStatus.textContent = text || '';
+      els.voiceStatus.classList.remove('ok','warn','bad');
+      if (level) els.voiceStatus.classList.add(level);
+    }
+
+    function speechAvailable(){
+      return ('speechSynthesis' in window) && ('SpeechSynthesisUtterance' in window);
+    }
+
+    function sortVoiceList(list){
+      return (list || []).slice().sort((a, b) => {
+        const aLang = String(a.lang || '');
+        const bLang = String(b.lang || '');
+        const aScore = /^es(-|_)?MX/i.test(aLang) ? 0 : /^es/i.test(aLang) ? 1 : 2;
+        const bScore = /^es(-|_)?MX/i.test(bLang) ? 0 : /^es/i.test(bLang) ? 1 : 2;
+        if (aScore !== bScore) return aScore - bScore;
+        return String(a.name || '').localeCompare(String(b.name || ''));
+      });
+    }
+
+    function refreshVoicesNow(){
+      if (!speechAvailable()) {
+        state.voices = [];
+        state.voiceReady = false;
+        populateVoiceSelect();
+        setVoiceStatus('Sin Web Speech: usa Chrome/Edge + TTS del sistema', 'bad');
+        return [];
+      }
+      try {
+        const list = window.speechSynthesis.getVoices() || [];
+        state.voices = sortVoiceList(list);
+        state.voiceReady = state.voices.length > 0;
+        populateVoiceSelect();
+        if (state.voiceReady) {
+          const esCount = state.voices.filter(v => /^es/i.test(String(v.lang || ''))).length;
+          setVoiceStatus(esCount ? `Voces listas: ${esCount} ES / ${state.voices.length}` : `Voces listas: ${state.voices.length}`, 'ok');
+        } else {
+          setVoiceStatus('Sin lista de voces: usando motor automático', 'warn');
+        }
+        return state.voices;
+      } catch (err) {
+        state.voices = [];
+        state.voiceReady = false;
+        populateVoiceSelect();
+        setVoiceStatus('Error leyendo voces del sistema', 'bad');
+        return [];
+      }
+    }
+
+    function scheduleVoiceRefresh(){
+      for (const t of state.voiceProbeTimers || []) { try { clearTimeout(t); } catch {} }
+      state.voiceProbeTimers = [];
+      const delays = [0, 120, 350, 800, 1600, 3000, 5200, 8000];
+      for (const d of delays) {
+        const timer = setTimeout(() => {
+          const voices = refreshVoicesNow();
+          if (voices.length && d >= 800) {
+            for (const t of state.voiceProbeTimers || []) { try { clearTimeout(t); } catch {} }
+            state.voiceProbeTimers = [];
+          }
+        }, d);
+        state.voiceProbeTimers.push(timer);
+      }
+    }
+
     function populateVoiceSelect(){
       if (!els.voiceSelect) return;
       const current = state.voiceName || '';
-      const voices = (state.voices || []).slice().sort((a, b) => {
-        const aMx = /^es(-|_)?MX/i.test(a.lang) ? 0 : /^es/i.test(a.lang) ? 1 : 2;
-        const bMx = /^es(-|_)?MX/i.test(b.lang) ? 0 : /^es/i.test(b.lang) ? 1 : 2;
-        if (aMx !== bMx) return aMx - bMx;
-        return String(a.name || '').localeCompare(String(b.name || ''));
-      });
-      const options = ['<option value="">Voz automática</option>'];
+      const voices = sortVoiceList(state.voices || []);
+      const autoLabel = voices.length ? 'Voz automática' : 'Sistema automático (sin lista)';
+      const options = [`<option value="">${escapeHtml(autoLabel)}</option>`];
       for (const v of voices) {
         const label = `${v.name || 'Sin nombre'} (${v.lang || 'sin idioma'})`;
         const selected = v.name === current ? ' selected' : '';
@@ -679,8 +896,13 @@
         els.lastLap.textContent = '--.--';
         setTrendClass('');
         els.note.textContent = state.rows.length ? 'Selecciona un piloto' : 'Esperando datos...';
+        els.positionValue.textContent = '-';
         els.lapsValue.textContent = '-';
         els.forecastValue.textContent = '-';
+        els.meanValue.textContent = '-';
+        els.paceValue.textContent = '-';
+        els.consistencyValue.textContent = '-';
+        els.sigmaValue.textContent = '-';
         els.bestValue.textContent = '-';
         els.totalValue.textContent = '-';
       }
@@ -692,32 +914,75 @@
       els.lastLap.classList.add('flash');
     }
 
-    function speakText(text){
-      if (!state.voiceOn || !state.speechUnlocked || !text || !('speechSynthesis' in window)) return;
+    function pickBestVoice(){
+      const voices = state.voices.length ? state.voices : refreshVoicesNow();
+      const selectedVoice = state.voiceName ? voices.find(v => v.name === state.voiceName) : null;
+      return selectedVoice
+        || voices.find(v => /^es(-|_)?MX/i.test(String(v.lang || '')))
+        || voices.find(v => /^es/i.test(String(v.lang || '')))
+        || voices[0]
+        || null;
+    }
+
+    function speakText(text, opts={}){
+      const force = !!opts.force;
+      if ((!state.voiceOn && !force) || !text) return false;
+      if (!speechAvailable()) {
+        setVoiceStatus('Sin motor de voz en este navegador', 'bad');
+        return false;
+      }
       try {
-        window.speechSynthesis.cancel();
-        const u = new SpeechSynthesisUtterance(text);
-        const voices = state.voices.length ? state.voices : window.speechSynthesis.getVoices();
-        const selectedVoice = state.voiceName ? voices.find(v => v.name === state.voiceName) : null;
-        const pick = selectedVoice || voices.find(v => /^es(-|_)?MX/i.test(v.lang)) || voices.find(v => /^es/i.test(v.lang)) || voices[0];
+        state.speechUnlocked = true;
+        const synth = window.speechSynthesis;
+        try { synth.resume && synth.resume(); } catch {}
+        if (opts.interrupt !== false) { try { synth.cancel(); } catch {} }
+
+        const u = new SpeechSynthesisUtterance(String(text));
+        const pick = pickBestVoice();
         if (pick) u.voice = pick;
         u.lang = (pick && pick.lang) ? pick.lang : 'es-MX';
         u.rate = clampRate(state.voiceRate);
         u.pitch = 1.0;
         u.volume = 1.0;
-        window.speechSynthesis.speak(u);
-      } catch {}
+        u.onstart = () => {
+          state.lastSpeakError = '';
+          setVoiceStatus(pick ? `Hablando: ${pick.lang || 'voz sistema'}` : 'Hablando: motor automático', 'ok');
+        };
+        u.onerror = (ev) => {
+          state.lastSpeakError = ev && ev.error ? String(ev.error) : 'error';
+          setVoiceStatus(`Fallo voz: ${state.lastSpeakError}`, 'bad');
+        };
+        u.onend = () => {
+          if (!state.lastSpeakError) {
+            setVoiceStatus(pick ? `Voz lista: ${pick.lang || 'sistema'}` : 'Voz lista: motor automático', 'ok');
+          }
+        };
+        synth.speak(u);
+        // Android/Huawei a veces deja el sintetizador pausado después del primer gesto. Reanudamos sin meter ruido.
+        setTimeout(() => { try { synth.resume && synth.resume(); } catch {} }, 80);
+        setTimeout(() => { try { synth.resume && synth.resume(); } catch {} }, 320);
+        return true;
+      } catch (err) {
+        state.lastSpeakError = err && err.message ? err.message : 'error';
+        setVoiceStatus('No pude lanzar la voz', 'bad');
+        return false;
+      }
     }
 
     async function unlockSpeech(){
       state.speechUnlocked = true;
-      if (!('speechSynthesis' in window)) return;
+      if (!speechAvailable()) {
+        setVoiceStatus('Sin Web Speech en este entorno', 'bad');
+        return false;
+      }
       try {
-        const u = new SpeechSynthesisUtterance(' ');
-        u.volume = 0;
-        window.speechSynthesis.cancel();
-        window.speechSynthesis.speak(u);
-      } catch {}
+        scheduleVoiceRefresh();
+        window.speechSynthesis.resume && window.speechSynthesis.resume();
+        return true;
+      } catch {
+        setVoiceStatus('No pude desbloquear voz', 'bad');
+        return false;
+      }
     }
 
     async function requestWakeLock(){
@@ -749,9 +1014,8 @@
       setVoiceUi();
       els.note.textContent = state.voiceOn ? 'Voz activa' : 'Voz apagada';
       if (state.voiceOn) {
-        setTimeout(() => {
-          try { speakText('Spotter listo'); } catch {}
-        }, 180);
+        // Se habla dentro de la misma interacción. En móvil eso vale oro; el delay mata el desbloqueo.
+        speakText('Spotter listo', { force:true, interrupt:true });
       }
     }
 
@@ -773,8 +1037,13 @@
       els.lastLap.textContent = lapText;
       setTrendClass(trend);
 
+      els.positionValue.textContent = row.position > 0 ? `P${row.position}` : '-';
       els.lapsValue.textContent = row.laps > 0 ? String(row.laps) : '-';
-      els.forecastValue.textContent = row.forecastMs > 0 ? formatLapMs(row.forecastMs) : '-';
+      els.forecastValue.textContent = formatForecast(row.forecastLaps, row.forecastMs);
+      els.meanValue.textContent = row.meanMs > 0 ? formatLapMs(row.meanMs) : '-';
+      els.paceValue.textContent = row.paceMs > 0 ? formatLapMs(row.paceMs) : '-';
+      els.consistencyValue.textContent = formatPercentValue(row.consistencyRaw);
+      els.sigmaValue.textContent = row.sigmaMs > 0 ? formatMsShort(row.sigmaMs) : (row.sigmaRaw ? String(row.sigmaRaw).trim() : '-');
       els.bestValue.textContent = row.bestLapMs > 0 ? formatLapMs(row.bestLapMs) : '-';
       els.totalValue.textContent = row.totalMs > 0 ? formatLapMs(row.totalMs) : '-';
 
@@ -905,6 +1174,13 @@
       }
     }
 
+    function primeVoiceFromFirstGesture(ev){
+      if (ev && ev.target && ev.target.closest && ev.target.closest('#voiceBtn')) return;
+      if (!state.voiceOn || state.speechUnlocked) return;
+      unlockSpeech();
+      speakText('Spotter listo', { force:true, interrupt:true });
+    }
+
     function bindEvents(){
       els.voiceBtn.addEventListener('click', onVoiceToggle);
       els.themeBtn.addEventListener('click', cycleTheme);
@@ -935,15 +1211,18 @@
       document.addEventListener('visibilitychange', () => {
         if (!document.hidden && state.voiceOn) requestWakeLock();
       });
-      if ('speechSynthesis' in window) {
-        const refreshVoices = () => {
-          state.voices = window.speechSynthesis.getVoices() || [];
-          populateVoiceSelect();
-        };
-        refreshVoices();
-        window.speechSynthesis.onvoiceschanged = refreshVoices;
+      ['pointerdown','touchstart','click'].forEach(ev => {
+        document.addEventListener(ev, primeVoiceFromFirstGesture, { passive:true, capture:true });
+      });
+      if (speechAvailable()) {
+        const refreshVoices = () => { refreshVoicesNow(); };
+        refreshVoicesNow();
+        scheduleVoiceRefresh();
+        try { window.speechSynthesis.addEventListener('voiceschanged', refreshVoices); } catch {}
+        try { window.speechSynthesis.onvoiceschanged = refreshVoices; } catch {}
       } else {
         populateVoiceSelect();
+        setVoiceStatus('Sin Web Speech: no hay voz nativa', 'bad');
       }
     }
 
